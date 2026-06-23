@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SINGULARITY — Zero-Latency Compute Fabric for AI Agents</title>
+<meta name="description" content="Disaggregated KV-Cache Service. Turn your GPU cluster into a single fluid memory pool. 8.3x faster cold starts. Built by Dante Bullock, Sovereign Logic.">
+<style>
+  :root {
+    --black: #050510;
+    --blacker: #020208;
+    --cyan: #00e5ff;
+    --cyan-dim: #009faf;
+    --purple: #7c4dff;
+    --purple-dim: #651fff;
+    --white: #e8eaf6;
+    --gray: #78909c;
+    --dark-gray: #0d1117;
+    --border: #1a2332;
+    --red: #ff1744;
+    --green: #00e676;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+    line-height: 1.6;
+    font-size: 15px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: var(--blacker);
+    border-bottom: 4px solid var(--cyan);
+    padding: 80px 24px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at 70% 30%, rgba(0,229,255,0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,229,255,0.02) 2px, rgba(0,229,255,0.02) 4px);
+    pointer-events: none;
+  }
+
+  .hero-badge {
+    display: inline-block;
+    background: var(--cyan);
+    color: var(--blacker);
+    font-weight: bold;
+    font-size: 12px;
+    letter-spacing: 3px;
+    padding: 6px 16px;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+  }
+
+  .hero h1 {
+    font-size: clamp(36px, 8vw, 72px);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    text-transform: uppercase;
+  }
+
+  .hero h1 .highlight { color: var(--cyan); }
+  .hero h1 .purple { color: var(--purple); }
+
+  .hero-stat {
+    display: inline-block;
+    background: var(--dark-gray);
+    border: 1px solid var(--cyan);
+    padding: 16px 24px;
+    margin: 24px 0;
+    text-align: center;
+  }
+
+  .hero-stat .number {
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--green);
+    display: block;
+    line-height: 1;
+  }
+
+  .hero-stat .label {
+    font-size: 13px;
+    color: var(--gray);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    display: block;
+    margin-top: 4px;
+  }
+
+  .hero-subtitle {
+    font-size: 18px;
+    color: var(--gray);
+    max-width: 680px;
+    margin: 16px 0 24px;
+  }
+
+  .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-block;
+    padding: 14px 28px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: bold;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.15s ease;
+  }
+
+  .btn-primary {
+    background: var(--cyan);
+    color: var(--blacker);
+    border-color: var(--cyan);
+  }
+  .btn-primary:hover { background: var(--cyan-dim); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--cyan);
+    border-color: var(--cyan);
+  }
+  .btn-ghost:hover { background: var(--cyan); color: var(--blacker); }
+
+  /* ── SECTIONS ── */
+  .section {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 80px 24px;
+  }
+
+  .section-dark {
+    background: var(--blacker);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--cyan);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .section h2 {
+    font-size: 28px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -1px;
+    margin-bottom: 16px;
+  }
+
+  .section p { color: var(--gray); margin-bottom: 16px; max-width: 720px; }
+
+  /* ── STAT GRID ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin: 40px 0;
+  }
+
+  .stat-card {
+    background: var(--dark-gray);
+    border: 1px solid var(--border);
+    padding: 24px;
+    text-align: center;
+  }
+
+  .stat-card .value {
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--cyan);
+    display: block;
+    line-height: 1.2;
+  }
+
+  .stat-card .label {
+    font-size: 12px;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+
+  /* ── COMPARISON TABLE ── */
+  .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 40px 0;
+    font-size: 13px;
+  }
+
+  .comparison-table th {
+    background: var(--cyan);
+    color: var(--blacker);
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border: 1px solid var(--cyan);
+  }
+
+  .comparison-table th:first-child { background: var(--dark-gray); color: var(--white); }
+  .comparison-table td {
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    color: var(--gray);
+  }
+
+  .comparison-table td:first-child { color: var(--white); font-weight: bold; }
+  .comparison-table td:last-child { color: var(--green); font-weight: bold; }
+  .comparison-table .bad { color: var(--red); }
+  .comparison-table .ok { color: var(--purple); }
+
+  /* ── FEATURES ── */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin: 40px 0;
+  }
+
+  .feature-item {
+    border: 1px solid var(--border);
+    padding: 24px;
+    background: var(--dark-gray);
+    border-left: 4px solid var(--cyan);
+  }
+
+  .feature-item h4 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--cyan);
+    margin-bottom: 8px;
+  }
+
+  .feature-item p { font-size: 13px; color: var(--gray); margin: 0; }
+
+  /* ── TERMINAL ── */
+  .terminal {
+    background: #0a0a10;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    font-size: 13px;
+    margin: 40px 0;
+  }
+
+  .terminal-header {
+    background: #111122;
+    padding: 8px 12px;
+    display: flex;
+    gap: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .terminal-dot.red { background: #ff5555; }
+  .terminal-dot.yellow { background: #ffaa00; }
+  .terminal-dot.green { background: #55ff55; }
+
+  .terminal-body {
+    padding: 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--white);
+    overflow-x: auto;
+  }
+
+  .term-prompt { color: var(--green); }
+  .term-command { color: var(--white); }
+  .term-output { color: var(--gray); }
+  .term-cyan { color: var(--cyan); font-weight: bold; }
+  .term-purple { color: var(--purple); }
+  .term-green { color: var(--green); }
+
+  /* ── PRICING ── */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 40px 0;
+  }
+
+  .pricing-tier {
+    border: 1px solid var(--border);
+    padding: 32px 24px;
+    background: var(--dark-gray);
+    text-align: center;
+  }
+
+  .pricing-tier.featured { border-color: var(--cyan); }
+  .pricing-tier.featured::before {
+    content: 'OPEN SOURCE';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--cyan);
+    color: var(--blacker);
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    padding: 4px 12px;
+  }
+
+  .pricing-tier h4 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+
+  .pricing-tier li {
+    padding: 4px 0;
+    color: var(--gray);
+    font-size: 13px;
+    text-align: left;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 4px solid var(--cyan);
+    padding: 48px 24px;
+    background: var(--blacker);
+    text-align: center;
+    font-size: 12px;
+    color: var(--gray);
+  }
+
+  footer a { color: var(--cyan); text-decoration: none; }
+
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 36px; }
+    .section { padding: 48px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section class="hero">
+  <span class="hero-badge">⚡ Private Alpha — Q3 2026</span>
+
+  <h1>
+    YOUR GPUs ARE<br>
+    <span class="highlight">70% IDLE</span><br>
+    RIGHT NOW.
+  </h1>
+
+  <div class="hero-stat">
+    <span class="number">8.3×</span>
+    <span class="label">Cold Start Speedup</span>
+  </div>
+
+  <p class="hero-subtitle">
+    SINGULARITY is the disaggregated KV-Cache Service that turns your GPU cluster
+    into a single fluid memory pool. No more "pod camping." No more 60-second cold
+    starts. Just compute, flowing where it's needed, when it's needed.
+  </p>
+
+  <div class="hero-cta">
+    <a href="#how" class="btn btn-primary">See How It Works ↓</a>
+    <a href="mailto:docspoc101@gmail.com?subject=SINGULARITY%20Early%20Access" class="btn btn-ghost">Request Early Access</a>
+  </div>
+</section>
+
+<!-- ═══════════ THE PROBLEM ═══════════ -->
+<section class="section">
+  <span class="section-label">// The Physics Problem</span>
+  <h2>Kubernetes Wasn't Built for AI.</h2>
+  <p>
+    K8s was designed for Web 2.0: long-running, predictable, stateless containers.
+    AI agents are the opposite — short-lived, compute-heavy, memory-explosive.
+    The result: companies keep massive GPU clusters warm and idle because spinning
+    up a new pod takes 60-120 seconds.
+  </p>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <span class="value" style="color:var(--red);">70%</span>
+      <span class="label">GPU Waste from Pod Camping</span>
+    </div>
+    <div class="stat-card">
+      <span class="value">120s</span>
+      <span class="label">Cold Start Latency</span>
+    </div>
+    <div class="stat-card">
+      <span class="value">25%</span>
+      <span class="label">Typical GPU Utilization</span>
+    </div>
+    <div class="stat-card">
+      <span class="value">$40K</span>
+      <span class="label">Monthly Waste per H100 Node</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ HOW IT WORKS ═══════════ -->
+<a id="how"></a>
+<section class="section section-dark">
+  <span class="section-label">// The Solution</span>
+  <h2>Memory, Decoupled From Compute.</h2>
+  <p>
+    SINGULARITY separates the Model Weights (loaded once, shared globally) from the
+    KV-Cache (the agent's "memory" — fluid, mobile, paged on demand). When an agent
+    moves between GPUs, we don't reload the model. We teleport the context.
+  </p>
+
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="terminal-dot red"></span>
+      <span class="terminal-dot yellow"></span>
+      <span class="terminal-dot green"></span>
+    </div>
+    <div class="terminal-body">
+      <span class="term-prompt">$ </span><span class="term-command">singularity benchmark --context 100k</span><br>
+      <br>
+      <span class="term-output">━━━ Standard vLLM (Full Block Pull) ━━━</span><br>
+      <span class="term-output">Context size: 16 GB (100k tokens)</span><br>
+      <span class="term-output">Transfer time: </span><span style="color:var(--red);">320.0 ms</span><br>
+      <span class="term-output">GPU utilization: 22.4%</span><br>
+      <br>
+      <span class="term-output">━━━ SINGULARITY (Sparse Head Pull) ━━━</span><br>
+      <span class="term-output">Context size: 16 GB → </span><span class="term-cyan">Head: 1.9 GB (12%)</span><br>
+      <span class="term-output">Transfer time: </span><span class="term-green">38.4 ms</span><br>
+      <span class="term-output">GPU utilization: 87.3%</span><br>
+      <br>
+      <span class="term-cyan">⚡ SPEEDUP: 8.3×</span><br>
+      <span class="term-purple">🔮 PREDICTIVE PREFETCH: Active</span><br>
+      <span class="term-green">📊 Monthly savings (100 H100s): ~$200K</span><br>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ COMPARISON ═══════════ -->
+<section class="section">
+  <span class="section-label">// Why SINGULARITY Wins</span>
+  <h2>Compute Should Be Fluid.</h2>
+
+  <div style="overflow-x:auto;">
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th>Capability</th>
+        <th>K8s / KubeRay</th>
+        <th>vLLM (Stock)</th>
+        <th>SINGULARITY</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Cold Start</td><td class="bad">60-120s (pod restart)</td><td class="bad">Reload weights (minutes)</td><td>&lt;50ms (page fault)</td></tr>
+      <tr><td>GPU Utilization</td><td class="bad">20-30%</td><td class="ok">40-50%</td><td>85-90%</td></tr>
+      <tr><td>Context Switching</td><td class="bad">N/A (static pods)</td><td class="bad">Wipe + reload VRAM</td><td>Sparse teleport (12% head)</td></tr>
+      <tr><td>Multi-Node VRAM</td><td class="bad">Isolated silos</td><td class="bad">Single node only</td><td>Global memory fabric</td></tr>
+      <tr><td>Transport</td><td class="bad">TCP/IP overlay</td><td class="bad">N/A</td><td>RDMA/RoCE v2 (GPU-direct)</td></tr>
+      <tr><td>Predictive Prefetch</td><td class="bad">✗</td><td class="bad">✗</td><td>Attention-head oracle</td></tr>
+      <tr><td>Failover</td><td class="bad">Pod restart (60s)</td><td class="bad">N/A</td><td>Micro-redirect (&lt;2ms)</td></tr>
+      <tr><td>OpEx per 1M tokens</td><td class="bad">~$10.00</td><td class="ok">~$5.00</td><td>~$1.80</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ═══════════ ARCHITECTURE ═══════════ -->
+<section class="section section-dark">
+  <span class="section-label">// Architecture</span>
+  <h2>The Stack.</h2>
+
+  <div style="background:var(--dark-gray);border:1px solid var(--border);padding:24px;font-size:13px;line-height:1.6;overflow-x:auto;">
+<pre style="color:var(--gray);">
+┌──────────────────────────────────────────────────────────┐
+│              <span style="color:var(--cyan);">SINGULARITY STACK</span>                              │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  <span style="color:var(--white);">Python SDK</span>     import singularity                │
+│                    llm = singularity.DistributedLLM(...)  │
+│                                                          │
+│  <span style="color:var(--purple);">🔒 Oracle</span>         Predictive Sparse Attention Router │
+│  (Closed Source)    Head-First Protocol                  │
+│                     Multi-Head Importance Sampling       │
+│                                                          │
+│  <span style="color:var(--green);">📂 Transport</span>     RDMA / RoCE v2 Fabric              │
+│  (Open Source)      GPU-Direct zero-copy                 │
+│                     UCX (Unified Communication X)        │
+│                                                          │
+│  <span style="color:var(--green);">📂 KV Connector</span>   Native vLLM KVConnector Backend     │
+│  (Open Source)      Global Page Table                    │
+│                     Remote Page Fault Handler            │
+│                                                          │
+│  <span style="color:var(--white);">Hardware</span>        H100/A100 + InfiniBand NDR400         │
+│                     RoCE v2 (400 Gbps)                   │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+
+  <p style="margin-top:24px;">
+    <strong style="color:var(--cyan);">Open-core model:</strong> The transport fabric and KV connector
+    are open source (Apache 2.0). The Predictive Oracle — the sparse attention router
+    that delivers the 8.3x speedup — is proprietary. Community edition gives you 40%
+    better utilization. Enterprise edition gives you 85%.
+  </p>
+</section>
+
+<!-- ═══════════ THE MATH ═══════════ -->
+<section class="section">
+  <span class="section-label">// The Arbitrage</span>
+  <h2>$200M in Found Margin.</h2>
+
+  <div class="feature-grid">
+    <div class="feature-item">
+      <h4>🧠 Sparse Teleportation</h4>
+      <p>85% of next-token attention comes from 12% of KV-cache. We teleport the critical 12% in &lt;5ms. The rest streams lazily during generation.</p>
+    </div>
+    <div class="feature-item">
+      <h4>⚡ Ghost Instances</h4>
+      <p>Model weights stay loaded globally. When an agent lands on a node, we inject the session context into the ghost instance. No model reload. Ever.</p>
+    </div>
+    <div class="feature-item">
+      <h4>🔮 Predictive Oracle</h4>
+      <p>The proprietary moat. Analyzes attention patterns across sessions to pre-fetch critical blocks before the request lands. 99.9% accuracy on 12% data.</p>
+    </div>
+    <div class="feature-item">
+      <h4>🌐 Global Memory Fabric</h4>
+      <p>RDMA/RoCE v2 transport. GPU-direct zero-copy. Data moves from Node_A:VRAM to Node_B:VRAM without touching the CPU. The cluster IS the memory.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PRICING ═══════════ -->
+<section class="section section-dark">
+  <span class="section-label">// Licensing</span>
+  <h2>Open-Core. Apache 2.0 + Proprietary.</h2>
+
+  <div class="pricing-grid">
+    <div class="pricing-tier featured" style="position:relative;">
+      <h4>Community (Open Source)</h4>
+      <div style="font-size:36px;font-weight:900;color:var(--green);margin-bottom:16px;">Free</div>
+      <ul>
+        <li>✓ RDMA/RoCE v2 transport fabric</li>
+        <li>✓ Native vLLM KVConnector</li>
+        <li>✓ Basic block migration</li>
+        <li>✓ Singularity daemon (sing-d)</li>
+        <li>✓ Python SDK</li>
+        <li>✗ Predictive Oracle</li>
+        <li>✗ Sparse Teleportation</li>
+        <li style="color:var(--gray);font-size:11px;margin-top:8px;">~40% utilization improvement</li>
+      </ul>
+    </div>
+
+    <div class="pricing-tier" style="border-color:var(--purple);">
+      <h4>Enterprise (Proprietary)</h4>
+      <div style="font-size:36px;font-weight:900;color:var(--purple);margin-bottom:16px;">Contact</div>
+      <ul>
+        <li>✓ Everything in Community</li>
+        <li>✓ Predictive Oracle</li>
+        <li>✓ Sparse Teleportation engine</li>
+        <li>✓ Utilization dashboard</li>
+        <li>✓ SLA-backed support</li>
+        <li>✓ Custom model optimization</li>
+        <li>✓ On-prem deployment</li>
+        <li style="color:var(--purple);font-size:11px;margin-top:8px;">~85% utilization improvement</li>
+      </ul>
+      <a href="mailto:docspoc101@gmail.com?subject=SINGULARITY%20Enterprise" class="btn btn-ghost" style="margin-top:16px;">Contact →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer>
+  <p style="color:var(--white);font-weight:bold;font-size:14px;">SINGULARITY — Sovereign Logic</p>
+  <p style="margin-top:4px;">The OS for the Sovereign AI Era.</p>
+  <p style="margin-top:12px;">
+    <a href="mailto:docspoc101@gmail.com">docspoc101@gmail.com</a> —
+    Built by Dante Bullock. No VC. No hype. Just physics.
+  </p>
+</footer>
+
+</body>
+</html>
