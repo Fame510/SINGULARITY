@@ -18,7 +18,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable, List
 
-import numpy as np
 
 from .blocks import BlockMeta, Tier
 

@@ -16,7 +16,7 @@ from typing import Dict
 
 import numpy as np
 
-from ..core.blocks import BlockMeta, KVBlock, Tier
+from ..core.blocks import BlockMeta, KVBlock
 from .base import Transport, TransferResult
 
 

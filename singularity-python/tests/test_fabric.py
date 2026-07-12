@@ -1,4 +1,4 @@
-from singularity.core.blocks import KVBlock, Tier
+from singularity.core.blocks import KVBlock
 from singularity.core.selector import SelectionConfig
 from singularity.sdk.fabric import ContextFabric
 
