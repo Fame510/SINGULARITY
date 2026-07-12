@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "singularity-dkcs"
+version = "0.2.0"
+description = "Open-source core of the SINGULARITY Disaggregated KV-Cache Service (context teleportation)."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [{ name = "SINGULARITY contributors" }]
+keywords = ["llm", "inference", "kv-cache", "vllm", "rdma", "disaggregation"]
+dependencies = ["numpy>=1.23"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "pytest-cov>=4", "ruff>=0.4"]
+
+[project.urls]
+Homepage = "https://github.com/Fame510/SINGULARITY"
+Source = "https://github.com/Fame510/SINGULARITY"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["singularity*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"

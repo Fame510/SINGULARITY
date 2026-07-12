@@ -1,111 +1,111 @@
 """
 SINGULARITY Python SDK
 ======================
-Drop-in replacement for vLLM with distributed KV-cache support.
+Open-source core of the Disaggregated KV-Cache Service (DKCS).
 
-Usage:
-    import singularity
-    llm = singularity.DistributedLLM(
-        model="meta-llama/Meta-Llama-3-70B",
-        fabric_mode="roce",
-        oracle_enabled=True  # Enterprise tier
-    )
-    output = llm.generate("Your prompt here")
+Two entry points:
+
+  * `ContextFabric` -- the real, runnable fabric (page table + selector +
+    transport). Works today on CPU/CI over a loopback transport; swap in the
+    RDMA backend on real hardware without changing your code.
+
+  * `DistributedLLM` -- a thin, vLLM-shaped facade kept for backward
+    compatibility with the original SDK sketch. It orchestrates a ContextFabric
+    under the hood. Text generation itself is delegated to a real engine
+    (e.g. vLLM) in production; without one installed it clearly reports that
+    rather than fabricating model output.
+
+Nothing in this package fabricates performance numbers. Benchmarks measure real
+serialization/transfer/reconstruction over the active transport and label the
+backend used. See docs/ARCHITECTURE.md for target-vs-measured claims.
 """
-
 from __future__ import annotations
 
-import os
 import time
-from typing import Optional
+from typing import List, Optional
+
+from .core import BlockMeta, KVBlock, Tier, SelectionConfig
+from .sdk import ContextFabric, TeleportReport
+from .transport import InMemoryTransport, Transport
+
+__version__ = "0.2.0"
+
+__all__ = [
+    "ContextFabric", "TeleportReport",
+    "KVBlock", "BlockMeta", "Tier", "SelectionConfig",
+    "InMemoryTransport", "Transport",
+    "DistributedLLM", "FabricConfig", "OracleConfig",
+    "__version__",
+]
 
 
 class FabricConfig:
-    """Transport fabric configuration."""
+    """Transport fabric configuration (backward-compatible)."""
 
-    def __init__(
-        self,
-        mode: str = "roce",  # "roce" or "infiniband"
-        devices: Optional[list[str]] = None,
-        page_size_mb: int = 16,
-    ):
+    def __init__(self, mode: str = "roce", devices: Optional[List[str]] = None,
+                 page_size_mb: int = 16) -> None:
         self.mode = mode
         self.devices = devices or ["mlx5_0"]
         self.page_size_mb = page_size_mb
 
 
 class OracleConfig:
-    """Predictive Oracle configuration (Enterprise tier)."""
+    """Predictive Oracle configuration (Enterprise tier).
 
-    def __init__(
-        self,
-        enabled: bool = False,
-        head_percent: float = 0.12,
-        prefetch_aggression: float = 0.8,
-    ):
+    In open-core, oracle_enabled routes selection through the built-in sparse
+    selector. The proprietary Oracle (learned attention-importance model) is a
+    commercial add-on and is NOT bundled here.
+    """
+
+    def __init__(self, enabled: bool = False, head_percent: float = 0.12,
+                 prefetch_aggression: float = 0.8) -> None:
         self.enabled = enabled
-        self.head_percent = head_percent  # 12% of KV-cache = 85% of attention
+        self.head_percent = head_percent
         self.prefetch_aggression = prefetch_aggression
 
 
 class DistributedLLM:
-    """SINGULARITY-enabled LLM with distributed KV-cache.
+    """vLLM-shaped facade over a ContextFabric.
 
-    Drop-in replacement for vLLM with GPU fabric awareness.
+    Backward compatible with the original sketch's constructor. `generate`
+    requires a real backend engine; if none is wired, it raises rather than
+    returning a fake string.
     """
 
-    def __init__(
-        self,
-        model: str,
-        fabric_mode: str = "roce",
-        oracle_enabled: bool = False,
-        tensor_parallel_size: int = 1,
-        **kwargs,
-    ):
+    def __init__(self, model: str, fabric_mode: str = "roce",
+                 oracle_enabled: bool = False, tensor_parallel_size: int = 1,
+                 engine=None, **kwargs) -> None:
         self.model = model
-        self.fabric = FabricConfig(mode=fabric_mode)
+        self.fabric_config = FabricConfig(mode=fabric_mode)
         self.oracle = OracleConfig(enabled=oracle_enabled)
         self.tensor_parallel_size = tensor_parallel_size
-
+        self._engine = engine  # inject a real generation engine here
+        self.fabric = ContextFabric(
+            selection=SelectionConfig(head_fraction=self.oracle.head_percent)
+        )
         self._init_time = time.time()
         self._total_tokens = 0
         self._total_teleports = 0
 
     def generate(self, prompt: str, max_tokens: int = 256, **kwargs) -> str:
-        """Generate text with distributed KV-cache."""
-        if self.oracle.enabled:
-            # Enterprise: predictive pre-fetch before generation
-            self._prefetch_context(prompt)
-
-        # Placeholder: actual vLLM + KVConnector integration
-        result = f"[SINGULARITY] Generated {max_tokens} tokens for: {prompt[:50]}..."
+        if self._engine is None:
+            raise NotImplementedError(
+                "DistributedLLM.generate needs a real generation engine. Pass "
+                "engine=<vLLM-like object with .generate(prompt, max_tokens)>. "
+                "SINGULARITY handles KV-cache movement, not token sampling."
+            )
+        out = self._engine.generate(prompt, max_tokens=max_tokens, **kwargs)
         self._total_tokens += max_tokens
-        return result
-
-    def _prefetch_context(self, prompt: str):
-        """Enterprise: pre-fetch critical KV-cache blocks."""
-        # This calls the closed-source Predictive Oracle
-        self._total_teleports += 1
+        return out
 
     @property
     def stats(self) -> dict:
         return {
             "model": self.model,
-            "fabric_mode": self.fabric.mode,
+            "fabric_mode": self.fabric_config.mode,
             "oracle_enabled": self.oracle.enabled,
             "uptime_seconds": time.time() - self._init_time,
             "total_tokens": self._total_tokens,
             "total_teleports": self._total_teleports,
+            "fabric_blocks": len(self.fabric.page_table),
         }
-
-
-# ── Quick Start ──
-if __name__ == "__main__":
-    llm = DistributedLLM(
-        model="meta-llama/Meta-Llama-3-8B-Instruct",
-        fabric_mode="roce",
-        oracle_enabled=True,
-    )
-    output = llm.generate("Explain quantum computing in one sentence.")
-    print(output)
-    print(llm.stats)
