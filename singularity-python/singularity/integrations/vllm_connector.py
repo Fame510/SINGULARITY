@@ -108,8 +108,9 @@ class SingularityKVConnector:
                 num_heads=self.num_kv_heads, head_dim=self.head_dim,
                 dtype=self.dtype, tier=Tier.COLD,
             )
-            blocks.append(KVBlock(meta=meta, key=np.ascontiguousarray(k),
-                                  value=np.ascontiguousarray(v)))
+            blocks.append(KVBlock(
+                meta=meta, key=np.ascontiguousarray(k),
+                value=np.ascontiguousarray(v)))
         self.fabric.publish_context(blocks, total_tokens=total_tokens)
         self.stats.requests += 1
         self.stats.blocks_published += len(blocks)
@@ -127,10 +128,11 @@ class SingularityKVConnector:
                 missing.append(eng_id)
                 self.stats.cache_misses += 1
         if missing:
-            logger.debug("teleport cache miss for %s blocks %s", request_id, missing)
+            logger.debug("teleport cache miss for %s blocks %s",
+                         request_id, missing)
 
-        report = self.fabric.teleport_context([fid for _, fid in present],
-                                              hot_only=hot_only)
+        report = self.fabric.teleport_context(
+            [fid for _, fid in present], hot_only=hot_only)
         out: Dict[int, Tuple[np.ndarray, np.ndarray]] = {}
         for eng_id, fid in present:
             block, _ = self.fabric.page_table.fetch(fid)
@@ -154,10 +156,12 @@ class SingularityKVConnector:
             return default
 
         kwargs = dict(
-            num_kv_heads=_get(config, "num_kv_heads", "num_key_value_heads", default=8),
+            num_kv_heads=_get(config, "num_kv_heads",
+                              "num_key_value_heads", default=8),
             head_dim=_get(config, "head_dim", default=128),
             block_size=_get(config, "block_size", default=16),
-            dtype=str(_get(config, "kv_cache_dtype", "dtype", default="float16")),
+            dtype=str(_get(config, "kv_cache_dtype", "dtype",
+                          default="float16")),
         )
         kwargs.update(overrides)
         logger.info("SingularityKVConnector.from_vllm_config -> %s", kwargs)

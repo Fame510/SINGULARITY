@@ -74,11 +74,13 @@ class Int8QuantCodec(Codec):
         # scale per head: max abs over (tokens, head_dim)
         amax = np.maximum(np.abs(a).max(axis=(0, 2)), 1e-8)  # (num_heads,)
         scale = (amax / 127.0).astype(np.float32)
-        q = np.round(a / scale[None, :, None]).clip(-127, 127).astype(np.int8)
+        q = (np.round(a / scale[None, :, None]).clip(-127, 127)
+             .astype(np.int8))
         return EncodedTensor(self.name, q.tobytes(), a.shape, "int8", scale)
 
     def decode(self, enc: EncodedTensor) -> np.ndarray:
-        q = np.frombuffer(enc.payload, dtype=np.int8).reshape(enc.shape).astype(np.float32)
+        q = np.frombuffer(enc.payload, dtype=np.int8).reshape(
+            enc.shape).astype(np.float32)
         deq = q * enc.scale[None, :, None]
         return deq.astype("float16")
 
