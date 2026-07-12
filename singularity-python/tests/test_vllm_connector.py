@@ -21,7 +21,9 @@ def test_publish_then_teleport_roundtrips_tensors():
     keys, values, positions = [], [], []
     for i in block_ids:
         k, v = _kv(16, seed=i)
-        keys.append(k); values.append(v); positions.append((i * 16, i * 16 + 16))
+        keys.append(k)
+        values.append(v)
+        positions.append((i * 16, i * 16 + 16))
     c.publish_blocks("req-1", block_ids, keys, values, positions, total_tokens=64)
 
     out, report = c.teleport_blocks("req-1", block_ids, hot_only=False)

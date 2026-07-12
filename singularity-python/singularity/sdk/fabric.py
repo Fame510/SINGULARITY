@@ -16,13 +16,12 @@ RDMA backend on real hardware requires no changes to this file.
 """
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass, field
 from typing import List, Optional
 
 from ..core.blocks import KVBlock, Tier
 from ..core.page_table import GlobalPageTable, FetchPlan
-from ..core.selector import SelectionConfig, assign_tiers, head_bytes, total_bytes
+from ..core.selector import SelectionConfig, assign_tiers
 from ..transport.base import Transport
 from ..transport.memory import InMemoryTransport
 

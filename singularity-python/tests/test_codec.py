@@ -1,5 +1,3 @@
-import numpy as np
-
 from singularity.core.blocks import KVBlock
 from singularity.core.codec import Int8QuantCodec, RawCodec, quantization_error
 
