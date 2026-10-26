@@ -58,17 +58,31 @@ class ContextFabric:
         self,
         transport: Optional[Transport] = None,
         selection: Optional[SelectionConfig] = None,
+        enable_magnitude_signal: bool = False,
     ) -> None:
         self.transport = transport or InMemoryTransport()
         self.selection = selection or SelectionConfig()
+        # The key-magnitude signal is OPT-IN. It was validated against
+        # real attention traces (GPT-2; scripts/real_attention_eval.py,
+        # docs/real-attention-eval.md) and FAILED there: anti-correlated
+        # with received attention mass, worse than random at the 12%
+        # budget. It stays available for architectures where a builder
+        # has verified it against their own model's traces — which is
+        # the standard its docstring always demanded.
+        self.enable_magnitude_signal = enable_magnitude_signal
         self.page_table = GlobalPageTable()
         self.page_table.register_transport(self.transport)
 
     def publish_context(self, blocks: List[KVBlock], total_tokens: int) -> None:
-        # Compute the magnitude signal from REAL tensor data before it's
-        # discarded down to metadata-only. Available even on a cold start
-        # (no prior request needed) -- see selector.magnitude_outlier_scores.
-        mag_scores = magnitude_outlier_scores(blocks)
+        # With the magnitude signal enabled, compute it from REAL tensor
+        # data before it's discarded down to metadata-only (cold-start
+        # capable — see selector.magnitude_outlier_scores). Default off:
+        # see the note in __init__ and docs/real-attention-eval.md.
+        mag_scores = (
+            magnitude_outlier_scores(blocks)
+            if self.enable_magnitude_signal
+            else None
+        )
         assign_tiers(
             (b.meta for b in blocks), total_tokens, self.selection,
             magnitude_scores=mag_scores,

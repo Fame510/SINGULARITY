@@ -101,3 +101,28 @@ DATA moves — this measures whether the RIGHT data was selected.
   head_fraction=0.12 to 40% at 0.0385 to 0% at 0.02). No claim is made here
   about what head_fraction is safe for any specific real workload — that
   requires real attention-trace validation this environment can't perform.
+
+---
+
+## Addendum — 2026-10-26: real attention-trace validation (the check the log above said this environment couldn't perform)
+
+It was performed. `scripts/real_attention_eval.py` ran GPT-2
+(openai-community/gpt2, torch CPU) over three prose passages with
+attention capture; ground truth = attention mass actually received
+per block. Full method and numbers: `docs/real-attention-eval.md`;
+raw output: `scripts/real_attention_results.json`.
+
+Result: the magnitude signal FAILED on real traces. Mean Spearman
+-0.73 against true block mass; mass recall at the 12% budget 0.052 —
+below random selection (0.12) and far below plain position (0.464).
+The synthetic evaluator's result does not generalize to this model;
+its needles were built with amplified key magnitudes, and real GPT-2
+keys do not carry salience that way — if anything the relationship
+inverts.
+
+Consequence: the magnitude signal is opt-in, not a default.
+`ContextFabric(enable_magnitude_signal=False)` is the default;
+`publish_context` only computes/passes magnitude scores when a
+builder enables it for an architecture they have verified against
+that model's own traces. The selector docstring now carries this
+outcome next to the original caveat.

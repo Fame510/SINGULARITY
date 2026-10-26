@@ -1,0 +1,51 @@
+{
+  "summary": {
+    "model": "openai-community/gpt2",
+    "passages": 3,
+    "block_tokens": 16,
+    "budget": 0.12,
+    "mean_spearman_magnitude": -0.7250389789089479,
+    "mean_spearman_position": -0.6218885002166736,
+    "mean_mass_recall_magnitude": 0.051735070782551344,
+    "mean_mass_recall_position": 0.4641949276044483,
+    "mean_mass_recall_oracle_top": 0.5036685630853351
+  },
+  "passages": [
+    {
+      "passage": 0,
+      "tokens": 346,
+      "blocks": 21,
+      "budget_blocks": 3,
+      "spearman_magnitude": -0.6883116883116883,
+      "spearman_position": -0.6584415584415585,
+      "mass_recall_magnitude": 0.06995698979700035,
+      "mass_recall_position": 0.46653141276108423,
+      "mass_recall_oracle_top": 0.5239400092047447,
+      "mass_recall_random_expected": 0.12
+    },
+    {
+      "passage": 1,
+      "tokens": 298,
+      "blocks": 18,
+      "budget_blocks": 2,
+      "spearman_magnitude": -0.7048503611971104,
+      "spearman_position": -0.5335397316821465,
+      "mass_recall_magnitude": 0.042456339031121025,
+      "mass_recall_position": 0.47305328565938903,
+      "mass_recall_oracle_top": 0.5054681632527463,
+      "mass_recall_random_expected": 0.12
+    },
+    {
+      "passage": 2,
+      "tokens": 328,
+      "blocks": 20,
+      "budget_blocks": 2,
+      "spearman_magnitude": -0.7819548872180451,
+      "spearman_position": -0.6736842105263158,
+      "mass_recall_magnitude": 0.042791883519532635,
+      "mass_recall_position": 0.4530000843928716,
+      "mass_recall_oracle_top": 0.4815975167985144,
+      "mass_recall_random_expected": 0.12
+    }
+  ]
+}

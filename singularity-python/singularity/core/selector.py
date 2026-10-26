@@ -72,12 +72,16 @@ def magnitude_outlier_scores(blocks: Iterable[KVBlock]) -> Dict[str, float]:
     in this request, not from feedback about a previous one.
 
     Caveat (stated plainly, not buried): the correlation between key-vector
-    magnitude and true attention salience is architecture-dependent and is
-    NOT verified here against a real trained model -- there is no
-    huggingface-class model available in this environment to check that
-    against. This is a real, implementable, testable signal; whether it
-    holds for any specific deployed model must be verified against that
-    model's real attention traces before being trusted in production.
+    magnitude and true attention salience is architecture-dependent. This
+    HAS now been checked against a real trained model — GPT-2, real prose,
+    received-attention ground truth (scripts/real_attention_eval.py;
+    results in docs/real-attention-eval.md) — and on that model the signal
+    FAILED: mean Spearman -0.73 against true block mass, and mass recall
+    at the 12% budget of 0.052, WORSE than random selection. The synthetic
+    benchmark result (oracle_quality_eval.py) does not generalize to this
+    real model. Accordingly the signal is opt-in, not a default: do not
+    enable it for an architecture until it has been re-verified against
+    that model's own attention traces.
     """
     blocks = list(blocks)
     if not blocks:
