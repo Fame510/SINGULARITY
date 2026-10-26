@@ -43,3 +43,18 @@ jobs:
       - run: pip install numpy
       - name: Run honest benchmark (small)
         run: python scripts/slb_benchmark.py --context-tokens 4096 --layers 2 --iterations 5 --json
+
+  transport-crate:
+    name: Transport crate (cargo)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: singularity-transport
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+      - name: Build
+        run: cargo build --verbose
+      - name: Test
+        run: cargo test --verbose
