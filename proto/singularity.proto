@@ -1,0 +1,134 @@
+// SINGULARITY gRPC API — High-Speed Daemon Interface
+//
+// Protocol definition for the disaggregated KV-Cache Service.
+// vLLM instances communicate with singd through this interface
+// to register sessions, resolve page faults, and report attention data.
+//
+// Build: protoc --prost_out=src/ proto/singularity.proto
+//
+// PROPRIETARY. DO NOT DISTRIBUTE.
+
+syntax = "proto3";
+
+package singularity;
+
+// ═══════════════════════════════════════════════════════
+//  SINGULARITY SERVICE
+// ═══════════════════════════════════════════════════════
+
+service SingularityService {
+  // Register a new inference session with the fabric.
+  // Returns the fabric-assigned session handle and initial page allocation.
+  rpc RegisterSession(SessionConfig) returns (SessionStatus);
+
+  // Resolve a page fault — the vLLM engine needs a KV-cache block
+  // that's currently on a remote GPU. Returns the teleport target.
+  rpc ResolvePageFault(FaultRequest) returns (PageLocation);
+
+  // Stream attention data back to the Oracle for training.
+  // Client streams attention matrices; server acks after ingestion.
+  rpc ReportAttentionHeads(stream AttentionChunk) returns (OracleAck);
+
+  // Trigger a proactive sparse teleport — Oracle predicts which blocks
+  // a session will need and pre-stages them on the target GPU.
+  rpc PrefetchBlocks(PrefetchRequest) returns (PrefetchStatus);
+
+  // Get current fabric telemetry.
+  rpc GetFabricStatus(FabricStatusRequest) returns (FabricStatus);
+
+  // Shutdown a session and release its pages back to the pool.
+  rpc DeregisterSession(SessionHandle) returns (SessionStatus);
+}
+
+// ═══════════════════════════════════════════════════════
+//  MESSAGES
+// ═══════════════════════════════════════════════════════
+
+message SessionConfig {
+  string session_id    = 1;
+  string model_name    = 2;
+  int32  max_context   = 3;   // Max tokens in context
+  int32  block_size    = 4;   // Tokens per KV-cache block (default 16)
+  string dtype         = 5;   // "fp16", "bf16", "fp8"
+  bool   oracle_enabled = 6;  // Enable predictive prefetch
+  repeated string target_nodes = 7; // Preferred GPU nodes
+}
+
+message SessionHandle {
+  string session_id = 1;
+}
+
+message SessionStatus {
+  string session_id    = 1;
+  uint64 fabric_handle = 2;   // Internal fabric session ID
+  int32  pages_allocated = 3;
+  bool   oracle_active   = 4;
+  string status          = 5; // "active", "error", "draining"
+  string error_message   = 6;
+}
+
+message FaultRequest {
+  string session_id    = 1;
+  int32  block_id      = 2;
+  int32  layer         = 3;   // Optional: specific layer
+  bool   urgent        = 4;   // Priority flag
+}
+
+message PageLocation {
+  bool   is_local           = 1;
+  string remote_node_id     = 2;
+  uint64 remote_vram_addr   = 3;
+  uint64 remote_mr_key      = 4;
+  uint32 remote_rkey        = 5;
+  uint64 page_size          = 6;
+  double estimated_fetch_ms = 7; // Expected RDMA fetch time
+  bool   is_head_block      = 8; // Oracle-classified critical block
+}
+
+message AttentionChunk {
+  string session_id      = 1;
+  int32  layer           = 2;
+  bytes  attention_data  = 3;  // Compressed attention matrix or Jacobian
+  int32  seq_len         = 4;
+  int32  num_heads       = 5;
+  string encoding        = 6;  // "raw_f32", "quantized_f16", "jacobian_diff"
+}
+
+message OracleAck {
+  bool   ingested        = 1;
+  int32  blocks_reclassified = 2;
+  double ingestion_ms    = 3;
+}
+
+message PrefetchRequest {
+  string session_id      = 1;
+  int32  target_tokens   = 2;   // How many tokens we expect to generate
+  bool   include_anchors = 3;
+}
+
+message PrefetchStatus {
+  bool   prefetch_triggered  = 1;
+  int32  blocks_prefetched   = 2;
+  uint64 bytes_in_flight     = 3;
+  double estimated_complete_ms = 4;
+}
+
+message FabricStatusRequest {
+  bool include_peers = 1;
+}
+
+message FabricStatus {
+  string node_id               = 1;
+  uint64 bytes_transferred     = 2;
+  uint64 operations_completed  = 3;
+  double avg_latency_us        = 4;
+  int32  active_sessions       = 5;
+  int32  total_pages           = 6;
+  int32  local_pages           = 7;
+  int32  remote_pages          = 8;
+  int32  peer_count            = 9;
+  uint64 oracle_observations   = 10;
+  double oracle_head_coverage  = 11;
+  bool   nerve_online          = 12;
+  double uptime_seconds        = 13;
+}
