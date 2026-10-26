@@ -14,7 +14,7 @@ keywords = ["llm", "inference", "kv-cache", "vllm", "rdma", "disaggregation"]
 dependencies = ["numpy>=1.23"]
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "pytest-cov>=4", "ruff>=0.4", "grpcio>=1.60; python_version >= \"3.10\"", "protobuf>=7.35,<8; python_version >= \"3.10\"", "pyshackle>=1.0"]
+dev = ["pytest>=7", "pytest-cov>=4", "ruff>=0.4", "grpcio>=1.60; python_version >= \"3.10\"", "protobuf>=7.35,<8; python_version >= \"3.10\"", "pyshackle>=1.0; python_version >= \"3.10\""]
 # The checked-in protobuf stubs carry gencode 7.35 (grpcio-tools 1.85),
 # which needs a protobuf 7.x runtime — and protobuf 7.x needs Python
 # >= 3.10. The base package still supports 3.9; this extra does not,
