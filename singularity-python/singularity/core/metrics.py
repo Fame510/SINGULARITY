@@ -18,7 +18,7 @@ from typing import Dict, List
 class Metrics:
     counters: Dict[str, float] = field(default_factory=dict)
     _hist: Dict[str, List[float]] = field(default_factory=dict)
-    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+    _lock: threading.RLock = field(default_factory=threading.RLock, repr=False)
 
     def incr(self, name: str, value: float = 1.0) -> None:
         with self._lock:

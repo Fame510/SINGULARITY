@@ -21,7 +21,7 @@ from typing import List, Optional
 
 from ..core.blocks import KVBlock, Tier
 from ..core.page_table import GlobalPageTable, FetchPlan
-from ..core.selector import SelectionConfig, assign_tiers
+from ..core.selector import SelectionConfig, assign_tiers, magnitude_outlier_scores
 from ..transport.base import Transport
 from ..transport.memory import InMemoryTransport
 
@@ -65,7 +65,14 @@ class ContextFabric:
         self.page_table.register_transport(self.transport)
 
     def publish_context(self, blocks: List[KVBlock], total_tokens: int) -> None:
-        assign_tiers((b.meta for b in blocks), total_tokens, self.selection)
+        # Compute the magnitude signal from REAL tensor data before it's
+        # discarded down to metadata-only. Available even on a cold start
+        # (no prior request needed) -- see selector.magnitude_outlier_scores.
+        mag_scores = magnitude_outlier_scores(blocks)
+        assign_tiers(
+            (b.meta for b in blocks), total_tokens, self.selection,
+            magnitude_scores=mag_scores,
+        )
         for b in blocks:
             self.page_table.publish(b, self.transport)
 
