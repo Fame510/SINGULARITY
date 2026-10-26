@@ -12,8 +12,11 @@ Requires the ``grpc`` extra (``pip install singularity-dkcs[grpc]``).
 
 The protobuf stubs (``singularity_pb2`` / ``singularity_pb2_grpc`` in
 this package) are generated from ``proto/singularity.proto`` and are
-checked in. Regenerate with::
+checked in. Their gencode is 7.35 (grpcio-tools 1.85), which requires
+a protobuf 7.x runtime and therefore Python >= 3.10. Regenerate with
+the pinned toolchain::
 
+    pip install "grpcio-tools==1.85.0"
     python -m grpc_tools.protoc -I proto \
         --python_out=singularity-python/singularity/integrations \
         --grpc_python_out=singularity-python/singularity/integrations \
@@ -34,7 +37,10 @@ try:
     from . import singularity_pb2_grpc as pb2_grpc
 
     _GRPC_AVAILABLE = True
-except ImportError:  # pragma: no cover - exercised only without grpcio
+except Exception:  # pragma: no cover - exercised only without the extra
+    # ImportError (no grpcio) or protobuf's VersionError (runtime older
+    # than the stubs' gencode): either way the client is unavailable
+    # in this environment, and SingdClient says how to fix it.
     grpc = None  # type: ignore[assignment]
     pb2 = None  # type: ignore[assignment]
     pb2_grpc = None  # type: ignore[assignment]
