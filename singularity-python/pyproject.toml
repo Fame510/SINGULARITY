@@ -14,8 +14,9 @@ keywords = ["llm", "inference", "kv-cache", "vllm", "rdma", "disaggregation"]
 dependencies = ["numpy>=1.23"]
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "pytest-cov>=4", "ruff>=0.4", "grpcio>=1.60", "protobuf>=6.30"]
+dev = ["pytest>=7", "pytest-cov>=4", "ruff>=0.4", "grpcio>=1.60", "protobuf>=6.30", "pyshackle>=1.0"]
 grpc = ["grpcio>=1.60", "protobuf>=6.30"]
+governance = ["pyshackle>=1.0"]
 
 [project.urls]
 Homepage = "https://github.com/Fame510/SINGULARITY"
